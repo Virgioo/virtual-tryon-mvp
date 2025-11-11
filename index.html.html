@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Try-On - MVP Dinamico</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #fafafa;
+    color: #333;
+  }
+
+  header {
+    background-color: #fff;
+    text-align: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 1.6em;
+    font-weight: bold;
+  }
+
+  .filter-box {
+    background-color: #fff;
+    margin: 20px auto;
+    padding: 15px;
+    width: 80%;
+    max-width: 800px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  .filter-label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .filter-input {
+    display: inline-block;
+    padding: 8px 10px;
+    width: 60%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+  }
+
+  .main-section {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    flex-wrap: wrap;
+    margin: 20px auto;
+    width: 90%;
+    max-width: 1200px;
+  }
+
+  .look,
+  .tryon {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 45%;
+    min-width: 300px;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .placeholder {
+    width: 100%;
+    height: 300px;
+    background-color: #e6e6e6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #777;
+    font-size: 1.1em;
+    border-radius: 4px;
+  }
+
+  .label {
+    margin-top: 10px;
+    font-weight: bold;
+    color: #555;
+  }
+
+  .alternatives {
+    width: 90%;
+    max-width: 1200px;
+    margin: 40px auto;
+    text-align: center;
+  }
+
+  .alternatives h3 {
+    margin-bottom: 20px;
+    font-size: 1.2em;
+  }
+
+  .alt-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .alt-item {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 150px;
+    padding: 10px;
+  }
+
+  .alt-img {
+    width: 100%;
+    height: 100px;
+    background-color: #e6e6e6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #777;
+    font-size: 0.9em;
+    border-radius: 4px;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 0.8em;
+    color: #999;
+    padding: 20px;
+  }
+
+  /* ======= Responsive Layout ======= */
+  @media only screen and (max-width: 768px) {
+    .main-section {
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .look,
+    .tryon {
+      width: 90%;
+      min-width: unset;
+    }
+
+    .filter-input {
+      width: 80%;
+    }
+
+    .placeholder {
+      height: 250px;
+      font-size: 1em;
+    }
+
+    .alt-grid {
+      gap: 15px;
+    }
+
+    .alt-item {
+      width: 45%;
+      max-width: 160px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>Virtual Try-On — T-Shirt e Magliette</header>
+
+<div class="filter-box">
+  <span class="filter-label">Vestiti per il ruolo:</span>
+  <div class="filter-input">Caricamento Ruolo...</div>
+</div>
+
+<div class="main-section">
+  <div class="look">
+    <div class="placeholder">Caricamento Look dal Database...</div>
+    <div class="label">Look Suggerito</div>
+  </div>
+
+  <div class="tryon">
+    <div class="placeholder">In attesa dei permessi Webcam...</div>
+    <div class="label">Prova Virtuale</div>
+  </div>
+</div>
+
+<div class="alternatives">
+  <h3>Alternative Simili (T-Shirt)</h3>
+  <div class="alt-grid">
+    <div class="alt-item">
+      <div class="alt-img">T-Shirt 1</div>
+    </div>
+    <div class="alt-item">
+      <div class="alt-img">T-Shirt 2</div>
+    </div>
+    <div class="alt-item">
+      <div class="alt-img">T-Shirt 3</div>
+    </div>
+    <div class="alt-item">
+      <div class="alt-img">T-Shirt 4</div>
+    </div>
+  </div>
+</div>
+
+<footer>© 2025 Virtual Try-On Prototype</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  // ** TUO URL API UNICO - NON MODIFICARE **
+  const apiUrl = "https://script.google.com/macros/s/AKfycby1nG7Yqd3CrE6RT6lQ8GC7StlnL4gsBnAa2nJXdIbH8V2vCwv1iw8hOlGOxveB3PfS/exec";
+
+  const tryonPlaceholder = document.querySelector(".tryon .placeholder");
+  const filterInput = document.querySelector(".filter-input");
+  const lookPlaceholder = document.querySelector(".look .placeholder");
+  let tshirtOverlay; 
+
+  // === Funzione per recuperare i dati dal backend ===
+  async function fetchLookData() {
+    try {
+      const response = await fetch(apiUrl);
+      // Se la chiamata fallisce (es. CORS o problema di rete), lancia un errore
+      if (!response.ok) throw new Error("API non raggiungibile o errore di rete."); 
+      
+      const lookData = await response.json();
+
+      if (Array.isArray(lookData) && lookData.length > 0) {
+        const firstLook = lookData[0];
+
+        // Aggiorna il filtro con il ruolo
+        if (firstLook.ROLE) {
+          filterInput.textContent = firstLook.ROLE;
+        }
+
+        // Aggiorna la descrizione del look
+        const colore = firstLook.CAPO_1_ALTERNATIVA || "Capo";
+        const ruolo = firstLook.ROLE || "Ruolo sconosciuto";
+        lookPlaceholder.textContent = `${colore} per ${ruolo}`;
+
+        // Aggiorna l'immagine T-Shirt se l'overlay è stato creato
+        if (firstLook.CAPO_1_URL_PNG && tshirtOverlay) {
+          tshirtOverlay.src = firstLook.CAPO_1_URL_PNG;
+        }
+      } else {
+        throw new Error("L'API non ha restituito dati validi.");
+      }
+    } catch (err) {
+      console.error("Errore durante il recupero dei dati dal backend:", err);
+      // Messaggio di errore aggiornato se il fetch fallisce
+      lookPlaceholder.textContent = "Errore: Connessione fallita. Prova a caricare il file su un server (Vedi istruzioni).";
+    }
+  }
+
+  // === Imposta il container Try-On con webcam ===
+  const container = document.createElement("div");
+  container.style.position = "relative";
+  container.style.width = "100%";
+  container.style.height = "100%";
+  container.style.overflow = "hidden";
+  container.style.borderRadius = "4px";
+  container.style.backgroundColor = "#000";
+
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.playsInline = true;
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.objectFit = "cover";
+  video.style.position = "absolute";
+  video.style.top = "0";
+  video.style.left = "0";
+
+  // Overlay T-Shirt 
+  tshirtOverlay = document.createElement("img");
+  tshirtOverlay.src = "https://i.imgur.com/sI4L5bA.png"; // Fallback URL iniziale
+  tshirtOverlay.alt = "Overlay T-Shirt";
+  tshirtOverlay.style.position = "absolute";
+  tshirtOverlay.style.top = "50%";
+  tshirtOverlay.style.left = "50%";
+  tshirtOverlay.style.transform = "translate(-50%, -50%)";
+  tshirtOverlay.style.width = "60%";
+  tshirtOverlay.style.opacity = "0.9";
+  tshirtOverlay.style.pointerEvents = "none";
+
+  // Pulisce e inserisce nel placeholder
+  tryonPlaceholder.innerHTML = "";
+  tryonPlaceholder.appendChild(container);
+  container.appendChild(video);
+  container.appendChild(tshirtOverlay);
+
+  // === Attiva la webcam ===
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    tryonPlaceholder.querySelector(".label").textContent = "Prova Virtuale Attiva";
+  } catch (err) {
+    console.error("Errore nell'accesso alla webcam:", err);
+    // Questo errore di solito avviene sui file locali (file://)
+    tryonPlaceholder.innerHTML = "<p style='color:#777;'>Impossibile accedere alla webcam.<br>Carica il file su un server per i permessi (HTTPS).</p>";
+  }
+
+  // === Recupera e applica i dati dall’API ===
+  await fetchLookData();
+});
+</script>
+
+</body>
+</html>
